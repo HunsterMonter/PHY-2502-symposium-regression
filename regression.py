@@ -158,13 +158,26 @@ def phi1_13(t, m4, a4, e4, t_04, phi_04, h1, h2, h3, h4):
 
     pdvCn = [pdvC0, pdvC1, pdvC2, pdvC3]
 
-    sum_1 = 0
-    sum_2 = 0
-    sum_3 = 0
-    for n in range(1, len(cn)):
-        sum_1 += cn[n] * np.cos(n*(omega*t + delta))
-        sum_2 += cn[n]/n * np.sin(n*(omega*t + delta))
-        sum_3 += (cn[n]*pdvA/A + pdvCn[n]*pdvB)/n * np.sin(n*(omega*t + delta))
+    def sum_1(t):
+        s = 0
+        for n in range(1, len(cn)):
+            s += cn[n] * np.cos(n*(omega*t + delta))
+
+        return s
+
+    def sum_2(t):
+        s = 0
+        for n in range(1, len(cn)):
+            s += cn[n]/n * np.sin(n*(omega*t + delta))
+
+        return s
+
+    def sum_3(t):
+        s = 0
+        for n in range(1, len(cn)):
+            s += (cn[n]*pdvA/A + pdvCn[n]*pdvB)/n * np.sin(n*(omega*t + delta))
+
+        return s
     
     d1 = -A**3 * (1/a_13**2 - 3*B/(4*a_14**2))
     d2 = a_13**3*a_14**2*a_24 * (3*a_13*a_23 - 1) - 2*A**3 * (1/(2*a_14**2) + 3*B/(4*a_13**2))
@@ -185,13 +198,13 @@ def phi1_13(t, m4, a4, e4, t_04, phi_04, h1, h2, h3, h4):
     d17 = -1/2*a_13*a_14**2*a_24 * (3*a_13*a_23 - 1) + A**3/a_13**2 * (1/(2*a_14**2) + 3*B/(4*a_13**2))
     d18 = -1/2*a_13*a_14**2*a_24 * (a_13*a_23 - 1) + A**3/a_13**2 * (3/(2*a_14**2) - 3*B/(4*a_13**2))
     
-    a1_13_func = lambda t: m4 * ( a_13**2/omega * ( c*np.cos(omega*t + delta) - sum_1 )
+    a1_13_func = lambda t: m4 * ( a_13**2/omega * ( c*np.cos(omega*t + delta) - sum_1(t) )
                        - e3 * (d1/a_13**3 * np.sin(a_13**3*t - a_13**2*b_13) + d2/(omega+a_13**3)*np.sin((omega+a_13**3)*t + delta - a_13**2*b_13) - 9*A**3*B/(8*a_14**2) * (1/(2*omega+a_13**3)*np.sin((2*omega+a_13**3)*t + 2*delta - a_13**2*b_13) + 1/(2*omega-a_13**3)*np.sin((2*omega-a_13**3)*t + 2*delta + a_13**2*b_13)))
                        - e4 * (d3/(omega+a_14**3)*np.sin((omega+a_14**3)*t + delta - a_14**2*b_14) + d4/(omega-a_14**3)*np.sin((omega-a_14**3)*t + delta + a_14**2*b_14) + 3*A**3*B/(4*a_14**2) * (3/(2*omega+a_14**3)*np.sin((2*omega+a_14**3)*t + 2*delta - a_14**2*b_14) + 1/(2*omega-a_14**3)*np.sin((2*omega-a_14**3)*t + 2*delta + a_14**2*b_14)))
                       )
     a1_13 = a1_13_func(t) - a1_13_func(0)
 
-    b1_13_func = lambda t: m4 * ( 2*c/(a_13*omega) * np.sin(omega*t + delta) - (cn[0]*pdvA/A + pdvCn[0]*pdvB)*t - sum_3/omega - 3*a_13**2/omega**2 * (c*np.sin(omega*t + delta) - sum_2) + (3*a_13**2*t - 2*a_13*b_13)/omega * (c*np.cos(omega*t + delta) - sum_1)
+    b1_13_func = lambda t: m4 * ( 2*c/(a_13*omega) * np.sin(omega*t + delta) - (cn[0]*pdvA/A + pdvCn[0]*pdvB)*t - sum_3(t)/omega - 3*a_13**2/omega**2 * (c*np.sin(omega*t + delta) - sum_2(t)) + (3*a_13**2*t - 2*a_13*b_13)/omega * (c*np.cos(omega*t + delta) - sum_1(t))
                        + e3 * ( -d5/a_13**3*np.cos(a_13**3*t - a_13**2*b_13) - d6/(omega+a_13**3)*np.cos((omega+a_13**3)*t + delta - a_13**2*b_13) - d7/(omega-a_13**3)*np.cos((omega-a_13**3)*t + delta + a_13**2*b_13) - d8/(2*omega+a_13**3)*np.cos((2*omega+a_13**3)*t + 2*delta - a_13**2*b_13) - 3*d8/(2*omega-a_13**3)*np.cos((2*omega-a_13**3)*t + 2*delta + a_13**2*b_13)
                                + (3*a_13**2*t - 2*a_13*b_13) * ( d9/a_13**3*np.sin(a_13**3*t - a_13**2*b_13) + d10/(omega+a_13**3)*np.sin((omega+a_13**3)*t + delta - a_13**2*b_13) + 9*A**3*B/(8*a_13**2*a_14**2) * (1/(2*omega+a_13**3)*np.sin((2*omega+a_13**3)*t + 2*delta - a_13**2*b_13) + 1/(2*omega-a_13**3)*np.sin((2*omega-a_13**3)*t + 2*delta + a_13**2*b_13)) )
                                + 3*a_13**2 * ( d9/a_13**6*np.cos(a_13**3*t - a_13**2*b_13) + d10/(omega+a_13**3)**2*np.cos((omega+a_13**3)*t + delta - a_13**2*b_13) + 9*A**3*B/(8*a_13**2*a_14**2) * (1/(2*omega+a_13**3)**2*np.cos((2*omega+a_13**3)*t + 2*delta - a_13**2*b_13) + 1/(2*omega-a_13**3)**2*np.cos((2*omega-a_13**3)*t + 2*delta + a_13**2*b_13)) )
@@ -203,7 +216,7 @@ def phi1_13(t, m4, a4, e4, t_04, phi_04, h1, h2, h3, h4):
                       )
     b1_13 = b1_13_func(t) - b1_13_func(0)
 
-    a1_23_func = lambda t: m4 * ( -c/omega * np.cos(omega*t + delta) + sum_1/omega
+    a1_23_func = lambda t: m4 * ( -c/omega * np.cos(omega*t + delta) + sum_1(t)/omega
                        - e3 * (d17/(omega+a_13**3)*np.sin((omega+a_13**3)*t + delta - a_13**2*b_13) + d18/(omega-a_13**3)*np.sin((omega-a_13**3)*t + delta + a_13**2*b_13) + 3*A**3*B/(4*a_13**2*a_14**2) * (1/(2*omega + a_13**3)*np.sin((2*omega+a_13**3)*t + 2*delta - a_13**2*b_13) + 3/(2*omega - a_13**3)*np.sin((2*omega-a_13**3)*t + 2*delta + a_13**2*b_13)))
                        - e4 * (d15/(omega+a_14**3)*np.sin((omega+a_14**3)*t + delta - a_14**2*b_14) + d16/(omega-a_14**3)*np.sin((omega-a_14**3)*t + delta + a_14**2*b_14) - 3*A**3*B/(4*a_13**2*a_14**2) * (3/(2*omega + a_14**3)*np.sin((2*omega+a_14**3)*t + 2*delta - a_14**2*b_14) + 1/(2*omega - a_14**3)*np.sin((2*omega-a_14**3)*t + 2*delta + a_14**2*b_14)))
                       )
@@ -214,12 +227,15 @@ def phi1_13(t, m4, a4, e4, t_04, phi_04, h1, h2, h3, h4):
                        - 1/2*e4*a_13**2*a_14 * ((a_14*a_24 - 1)/(omega+a_14**3)*np.cos((omega+a_14**3)*t + delta - a_14**2*b_14) + (3*a_14*a_24 - 1)/(omega-a_14**3)*np.cos((omega-a_14**3)*t + delta + a_14**2*b_14))
                       )
     b1_23 = b1_23_func(t) - b1_23_func(0)
+    #print(a1_13_func(t), b1_13_func(t), a1_23_func(t), b1_23_func(t))
+    #print(a1_13_func(0), b1_13_func(0), a1_23_func(0), b1_23_func(0))
+    #print(a1_13, b1_13, a1_23, b1_23)
 
     return 1/22903 * ( (3*a_13**2*t - 2*a_13*b_13)*a1_13 + b1_23 - a_13**2*b1_13
                        -2*np.sqrt(1 - a_13**2*a_23**2) * ((3*a_13**2*t - 2*a_13*b_13)*a1_13 - a_13**2*b1_13) * np.sin(a_13**3*t - a_13**2*b_13)
                        -2*(a_13*a_23**2*a1_13 + a_13**2*a_23*a1_23) / np.sqrt(1 - a_13**2*a_23**2) * np.cos(a_13**3*t - a_13**2*b_13)
                       )
-                         
+
 popt, pcov = curve_fit(phi1_13, temps, err, p0 = (1.180, 1.567, 0.005, 6.470, 0.998, 0, 0, 0, 0), bounds=((1, 1.1, 0, 0, 0, -1, -0.2, -10, -10), (2, 3, 0.1, 10, 2*np.pi, 1, 0.2, 10, 10)))
 print(popt)
 
@@ -236,7 +252,7 @@ plt.savefig("Erreurs.png", dpi=600)
 plt.plot(tta(temps2), phi1_13(temps2, *popt) / np.pi*180 * 3600, color="tab:red")
 plt.savefig("Régression.png", dpi=600)
 
-print(phi1_13(2, 1.180, 1.567, 0.007, 1.5, 0.998, 0, 0, 0, 0))
+print(phi1_13(10, 1.180, 1.567, 0.007, 1.5, 0.998, 0, 0, 0, 0))
 # Décourverte le 23 septembre 1846
 t = 3.49413
 m4, a4, e4, t04, phi04, h1, h2, h3, h4 = popt
