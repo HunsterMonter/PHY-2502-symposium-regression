@@ -54,7 +54,7 @@ err = -np.pi/(200*10000) * np.array ([-17.2, -10.3, -4.7, -10.3, -13.0, -1.0, 2.
 err_next = np.pi/(180*3600) * (np.array ([31.20, 31.53, 32.03, 32.27, 32.53, 33.00, 37.47, 37.97, 38.41, 38.92, 39.34, 43.88, 44.21, 44.66, 45.40, 46.05, 46.26, 51.06, 51.73, 52.14, 52.74, 53.19, 53.60]) + 0.00337 * np.array ([284, 286, 290, 291, 293, 296, 337, 335, 333, 331, 329, 248, 245, 241, 234, 228, 226, 210, 207, 205, 203, 201, 199]))
 
 # Erreur en rad
-err = np.concatenate ((err_prev, err, err_next))
+err = np.concatenate ((err_prev[:], err, err_next))
 #err = np.concatenate ((err_prev[3:], err))
 
 
@@ -82,6 +82,7 @@ cosphi = 0.0001 * np.array([-1888, 9856, 9988, -9089, -9130, -9809, -9999, -8470
 e = 0.0466108
 temps *= 100 / (1 + 2*e*cosphi) # Temps en années depuis 1781
 temps -= 19 # Temps en années depuis 1800
+temps = temps[:]
 temps = np.concatenate((temps, np.array([(dec_to_date (an) - epoch).days for an in annee_dec_next])/365.25))
 temps *= 2*np.pi / 84.02 # Temps en omega_3 depuis 1800
 
@@ -116,8 +117,8 @@ errV = np.pi / (180 * 3600) * np.array([-63.1, -59.9, -64.6, 34.8, 32.8, 24.7, 1
 def phi1_13(t, m4, a4, e4, t_04, phi_04, h1, h2, h3, h4):
     a3 = 1 + h1
     e3 = 0.047 + h2
-    t_03 = 6.149 + h3
-    phi_03 = 2.683 + h4
+    t_03 = 6.155 + h3
+    phi_03 = 2.939 + h4
 
     a_13 = 1 / a3**0.5
     a_23 = np.sqrt(a3 * (1-e3**2))
@@ -139,16 +140,31 @@ def phi1_13(t, m4, a4, e4, t_04, phi_04, h1, h2, h3, h4):
     A3 = B3 + b_23 + np.pi/2
     A4 = B4 + b_24 + np.pi/2
     
-    c1 = a_13**2 * a_14**2 * a_23 * a_24
-    c2 = a_13**3 - a_14**3
-    c3 = b_23 - b_24 - a_13**2*b_13 + a_14**2*b_14
-    c4 = -A * (B/2 + 15/64*B**3)
-    c5 = -A * 3/8*B**2
-    c6 = -A * 15/64*B**3
-    c7 = -(1 + 3/16*B**2) * pdvA - A * 3/8*B * pdvB
-    c8 = -(B/2 + 15/64*B**3) * pdvA - A * (1/2 + 45/64*B**2) * pdvB
-    c9 = -3/16*B**2 * pdvA - A * 3/8*B * pdvB
-    c10 = -5/64*B**3 * pdvA - A * 15/64*B**2 * pdvB
+    omega = a_13**3 - a_14**3
+    delta = b_23 - b_24 - a_13**2*b_13 + a_14**2*b_14
+    c = a_13**2 * a_14**2 * a_23 * a_24
+
+    c0 = A*(1 + 3*B**2/16)
+    c1 = A*(B/2 + 15*B**3/64)
+    c2 = A*(3*B**2/16)
+    c3 = A*(5*B**3/64)
+
+    cn = [c0, c1, c2, c3]
+
+    pdvC0 = A*(3*B/8)
+    pdvC1 = A*(1/2 + 45*B**2/64)
+    pdvC2 = A*(3*B/8)
+    pdvC3 = A*(15*B**2/64)
+
+    pdvCn = [pdvC0, pdvC1, pdvC2, pdvC3]
+
+    sum_1 = 0
+    sum_2 = 0
+    sum_3 = 0
+    for n in range(1, len(cn)):
+        sum_1 += cn[n] * np.cos(n*(omega*t + delta))
+        sum_2 += cn[n]/n * np.sin(n*(omega*t + delta))
+        sum_3 += (cn[n]*pdvA/A + pdvCn[n]*pdvB)/n * np.sin(n*(omega*t + delta))
     
     d1 = -A**3 * (1/a_13**2 - 3*B/(4*a_14**2))
     d2 = a_13**3*a_14**2*a_24 * (3*a_13*a_23 - 1) - 2*A**3 * (1/(2*a_14**2) + 3*B/(4*a_13**2))
@@ -169,36 +185,33 @@ def phi1_13(t, m4, a4, e4, t_04, phi_04, h1, h2, h3, h4):
     d17 = -1/2*a_13*a_14**2*a_24 * (3*a_13*a_23 - 1) + A**3/a_13**2 * (1/(2*a_14**2) + 3*B/(4*a_13**2))
     d18 = -1/2*a_13*a_14**2*a_24 * (a_13*a_23 - 1) + A**3/a_13**2 * (3/(2*a_14**2) - 3*B/(4*a_13**2))
     
-    a1_13_func = lambda t: m4 * ( a_13**2/c2 * ( (c1+c4)*np.cos(c2*t+c3) + c5/2*np.cos(2*(c2*t+c3)) + c6/3*np.cos(3*(c2*t+c3)) )
-                       - e3 * (d1/a_13**3 * np.sin(a_13**3*t - a_13**2*b_13) + d2/(c2+a_13**3)*np.sin((c2+a_13**3)*t + c3 - a_13**2*b_13) - 9*A**3*B/(8*a_14**2) * (1/(2*c2+a_13**3)*np.sin((2*c2+a_13**3)*t + 2*c3 - a_13**2*b_13) + 1/(2*c2-a_13**3)*np.sin((2*c2-a_13**3)*t + 2*c3 + a_13**2*b_13)))
-                       - e4 * (d3/(c2+a_14**3)*np.sin((c2+a_14**3)*t + c3 - a_14**2*b_14) + d4/(c2-a_14**3)*np.sin((c2-a_14**3)*t + c3 + a_14**2*b_14) + 3*A**3*B/(4*a_14**2) * (3/(2*c2+a_14**3)*np.sin((2*c2+a_14**3)*t + 2*c3 - a_14**2*b_14) + 1/(2*c2-a_14**3)*np.sin((2*c2-a_14**3)*t + 2*c3 + a_14**2*b_14)))
+    a1_13_func = lambda t: m4 * ( a_13**2/omega * ( c*np.cos(omega*t + delta) - sum_1 )
+                       - e3 * (d1/a_13**3 * np.sin(a_13**3*t - a_13**2*b_13) + d2/(omega+a_13**3)*np.sin((omega+a_13**3)*t + delta - a_13**2*b_13) - 9*A**3*B/(8*a_14**2) * (1/(2*omega+a_13**3)*np.sin((2*omega+a_13**3)*t + 2*delta - a_13**2*b_13) + 1/(2*omega-a_13**3)*np.sin((2*omega-a_13**3)*t + 2*delta + a_13**2*b_13)))
+                       - e4 * (d3/(omega+a_14**3)*np.sin((omega+a_14**3)*t + delta - a_14**2*b_14) + d4/(omega-a_14**3)*np.sin((omega-a_14**3)*t + delta + a_14**2*b_14) + 3*A**3*B/(4*a_14**2) * (3/(2*omega+a_14**3)*np.sin((2*omega+a_14**3)*t + 2*delta - a_14**2*b_14) + 1/(2*omega-a_14**3)*np.sin((2*omega-a_14**3)*t + 2*delta + a_14**2*b_14)))
                       )
     a1_13 = a1_13_func(t) - a1_13_func(0)
 
-    b1_13_func = lambda t: m4 * ( c7*t + 1/c2 * ( (c8 + 2*c1/a_13)*np.sin(c2*t+c3) + c9/2*np.sin(2*(c2*t+c3)) + c10/3*np.sin(3*(c2*t+c3))
-                                       -3*a_13**2/c2 * ( (c1+c4)*np.sin(c2*t+c3) + c5/4*np.sin(2*(c2*t+c3)) + c6/9*np.sin(3*(c2*t+c3)) )
-                                       -(2*a_13*b_13 - 3*a_13**2*t) * ( (c1+c4)*np.cos(c2*t+c3) + c5/2*np.cos(2*(c2*t+c3)) + c6/3*np.cos(3*(c2*t+c3)) )
-                                      )
-                       + e3 * ( -d5/a_13**3*np.cos(a_13**3*t - a_13**2*b_13) - d6/(c2+a_13**3)*np.cos((c2+a_13**3)*t + c3 - a_13**2*b_13) - d7/(c2-a_13**3)*np.cos((c2-a_13**3)*t + c3 + a_13**2*b_13) - d8/(2*c2+a_13**3)*np.cos((2*c2+a_13**3)*t + 2*c3 - a_13**2*b_13) - 3*d8/(2*c2-a_13**3)*np.cos((2*c2-a_13**3)*t + 2*c3 + a_13**2*b_13)
-                               + (3*a_13**2*t - 2*a_13*b_13) * ( d9/a_13**3*np.sin(a_13**3*t - a_13**2*b_13) + d10/(c2+a_13**3)*np.sin((c2+a_13**3)*t + c3 - a_13**2*b_13) + 9*A**3*B/(8*a_13**2*a_14**2) * (1/(2*c2+a_13**3)*np.sin((2*c2+a_13**3)*t + 2*c3 - a_13**2*b_13) + 1/(2*c2-a_13**3)*np.sin((2*c2-a_13**3)*t + 2*c3 + a_13**2*b_13)) )
-                               + 3*a_13**2 * ( d9/a_13**6*np.cos(a_13**3*t - a_13**2*b_13) + d10/(c2+a_13**3)**2*np.cos((c2+a_13**3)*t + c3 - a_13**2*b_13) + 9*A**3*B/(8*a_13**2*a_14**2) * (1/(2*c2+a_13**3)**2*np.cos((2*c2+a_13**3)*t + 2*c3 - a_13**2*b_13) + 1/(2*c2-a_13**3)**2*np.cos((2*c2-a_13**3)*t + 2*c3 + a_13**2*b_13)) )
+    b1_13_func = lambda t: m4 * ( 2*c/(a_13*omega) * np.sin(omega*t + delta) - (cn[0]*pdvA/A + pdvCn[0]*pdvB)*t - sum_3/omega - 3*a_13**2/omega**2 * (c*np.sin(omega*t + delta) - sum_2) + (3*a_13**2*t - 2*a_13*b_13)/omega * (c*np.cos(omega*t + delta) - sum_1)
+                       + e3 * ( -d5/a_13**3*np.cos(a_13**3*t - a_13**2*b_13) - d6/(omega+a_13**3)*np.cos((omega+a_13**3)*t + delta - a_13**2*b_13) - d7/(omega-a_13**3)*np.cos((omega-a_13**3)*t + delta + a_13**2*b_13) - d8/(2*omega+a_13**3)*np.cos((2*omega+a_13**3)*t + 2*delta - a_13**2*b_13) - 3*d8/(2*omega-a_13**3)*np.cos((2*omega-a_13**3)*t + 2*delta + a_13**2*b_13)
+                               + (3*a_13**2*t - 2*a_13*b_13) * ( d9/a_13**3*np.sin(a_13**3*t - a_13**2*b_13) + d10/(omega+a_13**3)*np.sin((omega+a_13**3)*t + delta - a_13**2*b_13) + 9*A**3*B/(8*a_13**2*a_14**2) * (1/(2*omega+a_13**3)*np.sin((2*omega+a_13**3)*t + 2*delta - a_13**2*b_13) + 1/(2*omega-a_13**3)*np.sin((2*omega-a_13**3)*t + 2*delta + a_13**2*b_13)) )
+                               + 3*a_13**2 * ( d9/a_13**6*np.cos(a_13**3*t - a_13**2*b_13) + d10/(omega+a_13**3)**2*np.cos((omega+a_13**3)*t + delta - a_13**2*b_13) + 9*A**3*B/(8*a_13**2*a_14**2) * (1/(2*omega+a_13**3)**2*np.cos((2*omega+a_13**3)*t + 2*delta - a_13**2*b_13) + 1/(2*omega-a_13**3)**2*np.cos((2*omega-a_13**3)*t + 2*delta + a_13**2*b_13)) )
                               )
-                       + e4 * ( -d11/a_14**3*np.cos(a_14**3*t - a_14**2*b_14) - d12/(c2+a_14**3)*np.cos((c2+a_14**3)*t + c3 - a_14**2*b_14) - d13/(c2-a_14**3)*np.cos((c2-a_14**3)*t + c3 + a_14**2*b_14) - 3*d14/(2*c2+a_14**3)*np.cos((2*c2+a_14**3)*t + 2*c3 - a_14**2*b_14) - d14/(2*c2-a_14**3)*np.cos((2*c2-a_14**3)*t + 2*c3 + a_14**2*b_14)
-                               + (3*a_13**2*t - 2*a_13*b_13) * ( d15/(c2+a_14**3)*np.sin((c2+a_14**3)*t + c3 - a_14**2*b_14) + d16/(c2-a_14**3)*np.sin((c2-a_14**3)*t + c3 + a_14**2*b_14) - 3*A**3*B/(4*a_13**2*a_14**2) * (3/(2*c2+a_14**3)*np.sin((2*c2+a_14**3)*t + 2*c3 - a_14**2*b_14) + 1/(2*c2-a_14**3)*np.sin((2*c2-a_14**3)*t + 2*c3 + a_14**2*b_14)) )
-                               + 3*a_13**2 * ( d15/(c2+a_14**3)**2*np.cos((c2+a_14**3)*t + c3 - a_14**2*b_14) + d16/(c2-a_14**3)**2*np.cos((c2-a_14**3)*t + c3 + a_14**2*b_14) - 3*A**3*B/(4*a_13**2*a_14**2) * (3/(2*c2+a_14**3)**2*np.cos((2*c2+a_14**3)*t + 2*c3 - a_14**2*b_14) + 1/(2*c2-a_14**3)**2*np.cos((2*c2-a_14**3)*t + 2*c3 + a_14**2*b_14)) )
+                       + e4 * ( -d11/a_14**3*np.cos(a_14**3*t - a_14**2*b_14) - d12/(omega+a_14**3)*np.cos((omega+a_14**3)*t + delta - a_14**2*b_14) - d13/(omega-a_14**3)*np.cos((omega-a_14**3)*t + delta + a_14**2*b_14) - 3*d14/(2*omega+a_14**3)*np.cos((2*omega+a_14**3)*t + 2*delta - a_14**2*b_14) - d14/(2*omega-a_14**3)*np.cos((2*omega-a_14**3)*t + 2*delta + a_14**2*b_14)
+                               + (3*a_13**2*t - 2*a_13*b_13) * ( d15/(omega+a_14**3)*np.sin((omega+a_14**3)*t + delta - a_14**2*b_14) + d16/(omega-a_14**3)*np.sin((omega-a_14**3)*t + delta + a_14**2*b_14) - 3*A**3*B/(4*a_13**2*a_14**2) * (3/(2*omega+a_14**3)*np.sin((2*omega+a_14**3)*t + 2*delta - a_14**2*b_14) + 1/(2*omega-a_14**3)*np.sin((2*omega-a_14**3)*t + 2*delta + a_14**2*b_14)) )
+                               + 3*a_13**2 * ( d15/(omega+a_14**3)**2*np.cos((omega+a_14**3)*t + delta - a_14**2*b_14) + d16/(omega-a_14**3)**2*np.cos((omega-a_14**3)*t + delta + a_14**2*b_14) - 3*A**3*B/(4*a_13**2*a_14**2) * (3/(2*omega+a_14**3)**2*np.cos((2*omega+a_14**3)*t + 2*delta - a_14**2*b_14) + 1/(2*omega-a_14**3)**2*np.cos((2*omega-a_14**3)*t + 2*delta + a_14**2*b_14)) )
                               )
                       )
     b1_13 = b1_13_func(t) - b1_13_func(0)
 
-    a1_23_func = lambda t: m4 * ( -1/c2 * ((c1+c4)*np.cos(c2*t+c3) + c5/2*np.cos(2*(c2*t+c3)) + c6/3*np.cos(3*(c2*t+c3)))
-                       - e3 * (d17/(c2+a_13**3)*np.sin((c2+a_13**3)*t + c3 - a_13**2*b_13) + d18/(c2-a_13**3)*np.sin((c2-a_13**3)*t + c3 + a_13**2*b_13) + 3*A**3*B/(4*a_13**2*a_14**2) * (1/(2*c2 + a_13**3)*np.sin((2*c2+a_13**3)*t + 2*c3 - a_13**2*b_13) + 3/(2*c2 - a_13**3)*np.sin((2*c2-a_13**3)*t + 2*c3 + a_13**2*b_13)))
-                       - e4 * (d15/(c2+a_14**3)*np.sin((c2+a_14**3)*t + c3 - a_14**2*b_14) + d16/(c2-a_14**3)*np.sin((c2-a_14**3)*t + c3 + a_14**2*b_14) - 3*A**3*B/(4*a_13**2*a_14**2) * (3/(2*c2 + a_14**3)*np.sin((2*c2+a_14**3)*t + 2*c3 - a_14**2*b_14) + 1/(2*c2 - a_14**3)*np.sin((2*c2-a_14**3)*t + 2*c3 + a_14**2*b_14)))
+    a1_23_func = lambda t: m4 * ( -c/omega * np.cos(omega*t + delta) + sum_1/omega
+                       - e3 * (d17/(omega+a_13**3)*np.sin((omega+a_13**3)*t + delta - a_13**2*b_13) + d18/(omega-a_13**3)*np.sin((omega-a_13**3)*t + delta + a_13**2*b_13) + 3*A**3*B/(4*a_13**2*a_14**2) * (1/(2*omega + a_13**3)*np.sin((2*omega+a_13**3)*t + 2*delta - a_13**2*b_13) + 3/(2*omega - a_13**3)*np.sin((2*omega-a_13**3)*t + 2*delta + a_13**2*b_13)))
+                       - e4 * (d15/(omega+a_14**3)*np.sin((omega+a_14**3)*t + delta - a_14**2*b_14) + d16/(omega-a_14**3)*np.sin((omega-a_14**3)*t + delta + a_14**2*b_14) - 3*A**3*B/(4*a_13**2*a_14**2) * (3/(2*omega + a_14**3)*np.sin((2*omega+a_14**3)*t + 2*delta - a_14**2*b_14) + 1/(2*omega - a_14**3)*np.sin((2*omega-a_14**3)*t + 2*delta + a_14**2*b_14)))
                       )
     a1_23 = a1_23_func(t) - a1_23_func(0)
 
-    b1_23_func = lambda t: m4 * ( c1/(c2*a_23)*np.sin(c2*t+c3)
-                       + 1/2*e3*a_13**2*a_14**2*a_24 * (3/(c2+a_13**3)*np.cos((c2+a_13**3)*t + c3 - a_13**2*b_13) + 1/(c2-a_13**3)*np.cos((c2-a_13**3)*t + c3 + a_13**2*b_13))
-                       - 1/2*e4*a_13**2*a_14 * ((a_14*a_24 - 1)/(c2+a_14**3)*np.cos((c2+a_14**3)*t + c3 - a_14**2*b_14) + (3*a_14*a_24 - 1)/(c2-a_14**3)*np.cos((c2-a_14**3)*t + c3 + a_14**2*b_14))
+    b1_23_func = lambda t: m4 * ( c/(omega*a_23)*np.sin(omega*t+delta)
+                       + 1/2*e3*a_13**2*a_14**2*a_24 * (3/(omega+a_13**3)*np.cos((omega+a_13**3)*t + delta - a_13**2*b_13) + 1/(omega-a_13**3)*np.cos((omega-a_13**3)*t + delta + a_13**2*b_13))
+                       - 1/2*e4*a_13**2*a_14 * ((a_14*a_24 - 1)/(omega+a_14**3)*np.cos((omega+a_14**3)*t + delta - a_14**2*b_14) + (3*a_14*a_24 - 1)/(omega-a_14**3)*np.cos((omega-a_14**3)*t + delta + a_14**2*b_14))
                       )
     b1_23 = b1_23_func(t) - b1_23_func(0)
 
@@ -207,7 +220,7 @@ def phi1_13(t, m4, a4, e4, t_04, phi_04, h1, h2, h3, h4):
                        -2*(a_13*a_23**2*a1_13 + a_13**2*a_23*a1_23) / np.sqrt(1 - a_13**2*a_23**2) * np.cos(a_13**3*t - a_13**2*b_13)
                       )
                          
-popt, pcov = curve_fit(phi1_13, temps, err, p0 = (1.180, 1.567, 0.007, 6.470, 0.740, 0, 0, 0, 0), bounds=((1.180, 1.567, 0.007, 6.470, 0.740, -0.1, -0.02, -1, -1), (1.1801, 1.5671, 0.0071, 6.4701, 0.7401, 0.1, 0.02, 1, 1)))
+popt, pcov = curve_fit(phi1_13, temps, err, p0 = (1.180, 1.567, 0.005, 6.470, 0.998, 0, 0, 0, 0), bounds=((1, 1.1, 0, 0, 0, -1, -0.2, -10, -10), (2, 3, 0.1, 10, 2*np.pi, 1, 0.2, 10, 10)))
 print(popt)
 
 # Affichage de l'erreur en fonction du temps
@@ -223,7 +236,7 @@ plt.savefig("Erreurs.png", dpi=600)
 plt.plot(tta(temps2), phi1_13(temps2, *popt) / np.pi*180 * 3600, color="tab:red")
 plt.savefig("Régression.png", dpi=600)
 
-print(phi1_13(2, 1.180, 1.567, 0.03, 1.5, 3.717, 0, 0, 0, 0))
+print(phi1_13(2, 1.180, 1.567, 0.007, 1.5, 0.998, 0, 0, 0, 0))
 # Décourverte le 23 septembre 1846
 t = 3.49413
 m4, a4, e4, t04, phi04, h1, h2, h3, h4 = popt
