@@ -54,8 +54,8 @@ err = -np.pi/(200*10000) * np.array ([-17.2, -10.3, -4.7, -10.3, -13.0, -1.0, 2.
 err_next = np.pi/(180*3600) * (np.array ([31.20, 31.53, 32.03, 32.27, 32.53, 33.00, 37.47, 37.97, 38.41, 38.92, 39.34, 43.88, 44.21, 44.66, 45.40, 46.05, 46.26, 51.06, 51.73, 52.14, 52.74, 53.19, 53.60]) + 0.00337 * np.array ([284, 286, 290, 291, 293, 296, 337, 335, 333, 331, 329, 248, 245, 241, 234, 228, 226, 210, 207, 205, 203, 201, 199]))
 
 # Erreur en rad
-err = np.concatenate ((err_prev[:], err, err_next))
-#err = np.concatenate ((err_prev[3:], err))
+#err = np.concatenate ((err_prev[:], err, err_next))
+err = np.concatenate ((err_prev[3:], err))
 
 
 # Calcule l'année décimale des données
@@ -82,8 +82,8 @@ cosphi = 0.0001 * np.array([-1888, 9856, 9988, -9089, -9130, -9809, -9999, -8470
 e = 0.0466108
 temps *= 100 / (1 + 2*e*cosphi) # Temps en années depuis 1781
 temps -= 19 # Temps en années depuis 1800
-temps = temps[:]
-temps = np.concatenate((temps, np.array([(dec_to_date (an) - epoch).days for an in annee_dec_next])/365.25))
+temps = temps[3:]
+#temps = np.concatenate((temps, np.array([(dec_to_date (an) - epoch).days for an in annee_dec_next])/365.25))
 temps *= 2*np.pi / 84.02 # Temps en omega_3 depuis 1800
 
 
@@ -144,6 +144,32 @@ def phi1_13(t, m4, a4, e4, t_04, phi_04, h1, h2, h3, h4):
     delta = b_23 - b_24 - a_13**2*b_13 + a_14**2*b_14
     c = a_13**2 * a_14**2 * a_23 * a_24
 
+    c0 = A*(1 + 3*B**2/16 + 105*B**4/2**10 + 1155*B**6/2**14 + 255255*B**8/2**22)
+    c1 = A*(B/2 + 15*B**3/64 + 315*B**5/2**11 + 15015*B**7/2**17 + 765765*B**9/2**23)
+    c2 = A*(3*B**2/16 + 35*B**4/2**8 + 3465*B**6/2**15 + 45045*B**8/2**19)
+    c3 = A*(5*B**3/64 + 315*B**5/2**12 + 9009*B**7/2**17 + 255255*B**9/2**22)
+    c4 = A*(35*B**4/2**10 + 693*B**6/2**14 + 45045*B**8/2**20)
+    c5 = A*(63*B**5/2**12 + 3003*B**7/2**17 + 109395*B**9/2**22)
+    c6 = A*(231*B**6/2**15 + 6435*B**8/2**19)
+    c7 = A*(429*B**7/2**17 + 109395*B**9/2**24)
+    c8 = A*(6435*B**8/2**22)
+    c9 = A*(12155*B**9/2**24)
+
+    cn = [c0, c1, c2, c3, c4, c5, c6, c7, c8, c9]
+
+    pdvC0 = A*(2*3*B/16 + 4*105*B**3/2**10 + 6*1155*B**5/2**14 + 8*255255*B**7/2**22)
+    pdvC1 = A*(1/2 + 3*15*B**2/64 + 5*315*B**4/2**11 + 7*15015*B**6/2**17 + 9*765765*B**8/2**23)
+    pdvC2 = A*(2*3*B/16 + 4*35*B**3/2**8 + 6*3465*B**5/2**15 + 8*45045*B**7/2**19)
+    pdvC3 = A*(3*5*B**2/64 + 5*315*B**4/2**12 + 7*9009*B**6/2**17 + 9*255255*B**8/2**22)
+    pdvC4 = A*(4*35*B**3/2**10 + 6*693*B**5/2**14 + 8*45045*B**7/2**20)
+    pdvC5 = A*(5*63*B**4/2**12 + 7*3003*B**6/2**17 + 9*109395*B**8/2**22)
+    pdvC6 = A*(6*231*B**5/2**15 + 8*6435*B**7/2**19)
+    pdvC7 = A*(7*429*B**6/2**17 + 9*109395*B**8/2**24)
+    pdvC8 = A*(8*6435*B**7/2**22)
+    pdvC9 = A*(9*12155*B**8/2**24)
+
+    pdvCn = [pdvC0, pdvC1, pdvC2, pdvC3, pdvC4, pdvC5, pdvC6, pdvC7, pdvC8, pdvC9]
+    """
     c0 = A*(1 + 3*B**2/16)
     c1 = A*(B/2 + 15*B**3/64)
     c2 = A*(3*B**2/16)
@@ -151,12 +177,13 @@ def phi1_13(t, m4, a4, e4, t_04, phi_04, h1, h2, h3, h4):
 
     cn = [c0, c1, c2, c3]
 
-    pdvC0 = A*(3*B/8)
-    pdvC1 = A*(1/2 + 45*B**2/64)
-    pdvC2 = A*(3*B/8)
-    pdvC3 = A*(15*B**2/64)
+    pdvC0 = A*(2*3*B/16)
+    pdvC1 = A*(1/2 + 3*15*B**2/64)
+    pdvC2 = A*(2*3*B/16)
+    pdvC3 = A*(3*5*B**2/64)
 
     pdvCn = [pdvC0, pdvC1, pdvC2, pdvC3]
+    """
 
     def sum_1(t):
         s = 0
@@ -234,28 +261,31 @@ def phi1_13(t, m4, a4, e4, t_04, phi_04, h1, h2, h3, h4):
     return 1/22903 * ( (3*a_13**2*t - 2*a_13*b_13)*a1_13 + b1_23 - a_13**2*b1_13
                        -2*np.sqrt(1 - a_13**2*a_23**2) * ((3*a_13**2*t - 2*a_13*b_13)*a1_13 - a_13**2*b1_13) * np.sin(a_13**3*t - a_13**2*b_13)
                        -2*(a_13*a_23**2*a1_13 + a_13**2*a_23*a1_23) / np.sqrt(1 - a_13**2*a_23**2) * np.cos(a_13**3*t - a_13**2*b_13)
-                      )
+                      )# + 1/22903*(h1 + h2*t + h3*np.sin(a_13**3*t - a_13**2*b_13) + h4*np.cos(a_13**3*t - a_13**2*b_13))
 
-popt, pcov = curve_fit(phi1_13, temps, err, p0 = (1.180, 1.567, 0.005, 6.470, 0.998, 0, 0, 0, 0), bounds=((1, 1.1, 0, 0, 0, -1, -0.2, -10, -10), (2, 3, 0.1, 10, 2*np.pi, 1, 0.2, 10, 10)))
+popt, pcov = curve_fit(phi1_13, temps, err, p0 = (1.180, 1.567, 0.005, 6.470, 0.998, 0, 0, 0, 0), bounds=((1, 1.1, 0, 0, 0, -1, -0.5, -10, -10), (2, 3, 0.1, 10, 2*np.pi, 1, 0.5, 10, 10)))
+#popt, pcov = curve_fit(phi1_13, tempsV, errV, p0 = (1.180, 1.567, 0.007, 6.470, 0.998, 0, 0, 0, 0), bounds=((1.180, 1.567, 0.007, 6.470, 0.998, -1, -0.2, -10, -10), (1.1801, 1.5671, 0.0071, 6.4701, 0.9981, 1, 0.2, 10, 10)))
 print(popt)
 
 # Affichage de l'erreur en fonction du temps
 def tta(temps):
     return temps * 84.02 / (2*np.pi) + 1800
-temps2 = np.linspace(np.min(temps), np.max(temps), 1000)
+temps2 = np.linspace(np.min(temps), np.max(temps), 10000)
 plt.style.use ("https://raw.githubusercontent.com/HunsterMonter/ggplot-dark/main/ggplot_dark.mplstyle")
 plt.figure (layout="constrained")
-plt.plot(tta(temps), err / np.pi*180 * 3600, ".", color="tab:blue")
+plt.plot(temps, err / np.pi*180 * 3600, ".", color="tab:blue")
 plt.xlabel("Année")
 plt.ylabel('Erreur sur la longitude (")')
 plt.savefig("Erreurs.png", dpi=600)
-plt.plot(tta(temps2), phi1_13(temps2, *popt) / np.pi*180 * 3600, color="tab:red")
+plt.plot(temps2, phi1_13(temps2, *popt) / np.pi*180 * 3600, color="tab:red")
+#plt.plot(temps2, phi1_13(temps2, 1.18, 1.567, 0.007, 6.470, 0.998, 0, 0, 0, 0) / np.pi*180 * 3600, color="tab:red")
 plt.savefig("Régression.png", dpi=600)
 
-print(phi1_13(10, 1.180, 1.567, 0.007, 1.5, 0.998, 0, 0, 0, 0))
+print(phi1_13(10, 1.180, 1.567, 0.007, 6.470, 0.998, 0, 0, 0, 0))
 # Décourverte le 23 septembre 1846
 t = 3.49413
 m4, a4, e4, t04, phi04, h1, h2, h3, h4 = popt
-#var = pcov[1,1]**2 + 9/4 * t**2/a**5 * pcov[0,0]**2 - 3*t/a**2.5 * pcov[0,1]
-print(f"Le jour de sa découverte, la longitude de Neptune serait de {180 / np.pi * (phi04 + (t-t04) / a4**1.5 + 2*e4*np.sin((t-t04) / a4**1.5)):.1f} ± {180 / np.pi * 0**0.5:.1f} degrés")
+var = pcov[4,4] + 9/4 * t**2/a4**5 * pcov[1,1] - 3*t/a4**2.5 * pcov[1,4]
+#print(pcov)
+print(f"Le jour de sa découverte, la longitude de Neptune serait de {180 / np.pi * (phi04 + (t-t04) / a4**1.5 + 2*e4*np.sin((t-t04) / a4**1.5)):.1f} ± {180 / np.pi * var**0.5:.1f} degrés")
 plt.show()
